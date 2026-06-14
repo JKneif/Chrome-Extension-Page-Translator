@@ -15,6 +15,15 @@ const els = {
 
 const DEFAULT_LANG = "en";
 
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function setStatus(text, kind) {
   els.status.textContent = text;
   els.status.className = `status ${kind}`;
@@ -85,6 +94,16 @@ async function init() {
     );
     return;
   }
+  if (!probe.detectorAvailable) {
+    setStatus("Language Detector API not available.", "error");
+    els.translate.disabled = true;
+    showBanner(
+      'Chrome\'s built-in Language Detector API is not available. ' +
+      '<a href="chrome://flags/#language-detection-api" target="_blank">Enable the flag</a> ' +
+      'or use Chrome 138+ (Canary/Dev/Beta).'
+    );
+    return;
+  }
 
   hideBanner();
   setStatus("Ready.", "idle");
@@ -99,7 +118,13 @@ async function onTranslate() {
   const res = await sendToContent({ type: "TRANSLATE", targetLang });
   setBusy(false);
   if (!res || !res.ok) {
-    setStatus(`Error: ${res && res.error ? res.error : "unknown"}`, "error");
+    const errCode = res && res.error ? res.error : "unknown";
+    setStatus(`Error: ${errCode}`, "error");
+    if (errCode === "DETECT_FAILED") {
+      showBanner("Could not detect the page's source language. Make sure the Language Detector API is enabled in chrome://flags and the page has visible text.");
+    } else if (errCode === "CREATE_FAILED" && res.detail) {
+      showBanner(`Translator.create failed:<br><code>${escapeHtml(res.detail)}</code>`);
+    }
     return;
   }
   if (res.translated === 0) {

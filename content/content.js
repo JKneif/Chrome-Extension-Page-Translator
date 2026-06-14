@@ -31,6 +31,26 @@
   }
 
   /**
+   * Build a small text sample from <title> + first visible text nodes,
+   * capped at ~500 chars, used as input to LanguageDetector.detect().
+   * @returns {string}
+   */
+  function buildDetectionSample() {
+    const parts = [];
+    const title = (document.title || "").trim();
+    if (title) parts.push(title);
+    const nodes = collectTextNodes(document.body);
+    for (const n of nodes) {
+      const t = n.nodeValue.trim();
+      if (!t) continue;
+      parts.push(t);
+      const combined = parts.join(" ");
+      if (combined.length > 500) break;
+    }
+    return parts.join(" ").slice(0, 800);
+  }
+
+  /**
    * Collect visible text nodes under `root`.
    * @param {Node} root
    * @returns {Text[]}
@@ -72,9 +92,33 @@
       return { ok: true, translated: 0, restored: 0, message: "Nothing to translate on this page." };
     }
 
+    // The Translator API does not accept "auto" — we must detect the
+    // source language first using the Language Detector API.
+    let sourceLang = null;
+    if (api.isLanguageDetectorAvailable()) {
+      const sample = buildDetectionSample();
+      sourceLang = await api.detectSourceLanguage(sample);
+    }
+    if (!sourceLang) {
+      return {
+        ok: false,
+        error: "DETECT_FAILED",
+        detail:
+          "Could not detect the page's source language. The Language Detector API may be unavailable, or the page has no usable text.",
+      };
+    }
+    if (sourceLang === targetLang) {
+      return {
+        ok: true,
+        translated: 0,
+        failures: 0,
+        message: `Page is already in ${targetLang}; nothing to translate.`,
+      };
+    }
+
     let translator;
     try {
-      translator = await api.ensureTranslator({ source: "auto", target: targetLang });
+      translator = await api.ensureTranslator({ source: sourceLang, target: targetLang });
     } catch (e) {
       console.error("[page-translator] ensureTranslator failed:", e);
       return { ok: false, error: "CREATE_FAILED", detail: String(e) };
@@ -144,7 +188,11 @@
     }
 
     if (msg.type === "PING") {
-      sendResponse({ ok: true, apiAvailable: !!(globalThis.__pt && globalThis.__pt.isTranslatorAvailable()) });
+      sendResponse({
+        ok: true,
+        apiAvailable: !!(globalThis.__pt && globalThis.__pt.isTranslatorAvailable()),
+        detectorAvailable: !!(globalThis.__pt && globalThis.__pt.isLanguageDetectorAvailable()),
+      });
       return false;
     }
 

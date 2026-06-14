@@ -11,8 +11,8 @@ A user-triggered Chrome extension that, on a single click in the popup, translat
 ## Constraints & Assumptions
 
 - **Distribution:** Unpacked extension loaded via `chrome://extensions/` in developer mode. No Chrome Web Store publishing.
-- **Engine:** Chrome Built-in Translator API (`globalThis.Translator`). Available in Chrome 138+ (Canary/Dev/Beta by default; Stable requires `chrome://flags/#translation-api`).
-- **Source language:** Auto-detect (`sourceLanguage: "auto"`).
+- **Engine:** Chrome Built-in Translator API (`globalThis.Translator`) + Language Detector API (`globalThis.LanguageDetector`). Available in Chrome 138+ (Canary/Dev/Beta by default; Stable requires `chrome://flags/#translation-api` and `chrome://flags/#language-detection-api`).
+- **Source language:** Detected at translate-time via `LanguageDetector.detect()` over `<title>` + first visible text nodes (~800 chars). Result is an explicit BCP-47 short code passed to `Translator.create()`. **"auto" is not accepted** by the Translator API and must be resolved first.
 - **Target language:** User-selectable in popup, default `en`. Persisted in `chrome.storage.session`.
 - **Scope:** Single page, no MutationObserver (best-effort, no live updates).
 - **Permissions:** `activeTab`, `scripting`, `storage`, `host_permissions: ["<all_urls>"]`.
@@ -42,11 +42,13 @@ manifest.json MV3 config
 1. User opens popup, picks target language, clicks **Translate**.
 2. `popup.js` → `chrome.tabs.sendMessage(tabId, {type: "TRANSLATE", targetLang})`.
 3. `content.js` calls `collectTextNodes(document.body)` → `Array<{node, text}>`.
-4. Text nodes grouped into batches of 50.
-5. For each batch: `ensureTranslator({source: "auto", target})` (cached by key).
-6. For each node: `translator.translate(text)` → assign to `node.textContent`.
-7. Original text stored in a `WeakMap<TextNode, string>` scoped to the content script module.
-8. Response `{ok: true, translated: N}` sent back to popup.
+4. `content.js` builds a detection sample (`<title>` + first ~800 chars) and calls `api.detectSourceLanguage(sample)` → `sourceLang`.
+5. If `sourceLang === targetLang`, respond with "Page is already in <target>".
+6. Text nodes grouped into batches of 50.
+7. For each batch: `ensureTranslator({source: sourceLang, target})` (cached by key).
+8. For each node: `translator.translate(text)` → assign to `node.textContent`.
+9. Original text stored in a `WeakMap<TextNode, string>` scoped to the content script module.
+10. Response `{ok: true, translated: N, failures: M}` sent back to popup.
 
 ### Restore
 
@@ -58,6 +60,9 @@ manifest.json MV3 config
 ### Errors
 
 - `Translator` undefined → popup renders red banner: *"Chrome Translator API is not available. Enable it in chrome://flags/#translation-api or use Chrome 138+ (Canary/Dev/Beta)."*
+- `LanguageDetector` undefined → popup renders red banner: *"Chrome Language Detector API is not available. Enable it in chrome://flags/#language-detection-api."*
+- Language detection returns `null` (e.g. empty page, detection failed) → popup: *"Could not detect the page's source language."*
+- `Translator.create()` throws (e.g. unsupported language pair) → popup shows the error detail in the banner. Original page is untouched.
 - `translator.translate()` rejects → log to console, leave node unchanged, continue batch. Popup status reflects `partial: M/N`.
 - Zero text nodes → popup: *"Nothing to translate on this page."*
 - Page reloaded → popup: *"Page was reloaded — nothing to restore."*
@@ -76,9 +81,11 @@ Single pass, no MutationObserver.
 
 `lib/translate.js` exports (as `globalThis.__pt` for content-script import; no ES modules in MV3 content scripts without bundler):
 
-- `ensureTranslator({source, target}) → Promise<Translator>` — caches by `${source}->${target}`. Calls `Translator.create({source, target, monitor})` if missing.
-- `translateBatch(translator, texts) → Promise<string[]>` — calls `translator.translate()` per text in parallel via `Promise.allSettled`. Order preserved; rejected entries become `texts[i]` (no-op fallback).
 - `isTranslatorAvailable() → boolean` — checks `typeof Translator !== "undefined"`.
+- `isLanguageDetectorAvailable() → boolean` — checks `typeof LanguageDetector !== "undefined"`.
+- `detectSourceLanguage(text) → Promise<string | null>` — calls `LanguageDetector.create().detect(text)`, returns the top hit's `detectedLanguage` (BCP-47 short code) or `null` on failure/unavailability.
+- `ensureTranslator({source, target}) → Promise<Translator>` — throws if `source` is missing or `"auto"`. Caches by `${source}->${target}`. Calls `Translator.create({sourceLanguage: source, targetLanguage: target})`.
+- `translateBatch(translator, texts) → Promise<{results: string[], failures: number}>` — calls `translator.translate()` per text in parallel via `Promise.allSettled`. Order preserved; rejected entries become `texts[i]` (no-op fallback).
 
 ## Persistence
 

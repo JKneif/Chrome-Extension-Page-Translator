@@ -13,7 +13,10 @@ A small Chrome extension (Manifest V3) that translates the current page into a t
 ## Requirements
 
 - **Chrome 138+** (Canary, Dev, or Beta).
-- On Stable Chrome, enable `chrome://flags/#translation-api` and restart the browser.
+- On Stable Chrome, enable both:
+  - `chrome://flags/#translation-api`
+  - `chrome://flags/#language-detection-api`
+- Restart the browser after enabling the flags.
 
 ## Install (unpacked, local use)
 
