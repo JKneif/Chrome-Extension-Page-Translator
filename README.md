@@ -1,4 +1,4 @@
-# 🔥 Page Translator — The "Why Isn't This Built Into Chrome Already" Extension
+# Page Translator — The "Why Isn't This Built Into Chrome Already" Extension
 
 > One click. Any page. Any language. **Zero tracking. Zero API keys. Zero cost.**
 
@@ -12,17 +12,17 @@ No copy-paste into Google Translate. No weird `translate.google.com/translate?u=
 
 ---
 
-## ⚡ What it does
+## What it does
 
-- 🌐 **Translates the entire page** into one of 12 languages with a single click
-- ↩️ **One-click restore** — original text comes back, byte-perfect
-- 🎯 **Smart source detection** — figures out the page's language from the actual DOM, not the URL (`/de/` paths lie, mixed-language SPAs exist)
-- 🚫 **Skips the noise** — `<code>`, `<pre>`, scripts, styles, hidden elements, and inputs are left alone. Your syntax-highlighted snippets stay syntax-highlighted.
-- 🧠 **Runs 100% on-device** using Chrome's built-in Translator + Language Detector APIs. **Nothing is sent to any server. No telemetry. No "anonymous usage stats". No bullshit.**
+- Translate the entire page into one of 12 languages with a single click
+- One-click restore — original text comes back, byte-perfect
+- Smart source detection — figures out the page's language from the actual DOM, not the URL (`/de/` paths lie, mixed-language SPAs exist)
+- Skips the noise — `<code>`, `<pre>`, scripts, styles, hidden elements, and inputs are left alone. Your syntax-highlighted snippets stay syntax-highlighted.
+- Runs 100% on-device using Chrome's built-in Translator + Language Detector APIs. **Nothing is sent to any server. No telemetry. No "anonymous usage stats". No bullshit.**
 
 ---
 
-## 🤔 Why not just use Google Translate's built-in page translation?
+## Why not just use Google Translate's built-in page translation?
 
 Glad you asked. Here's the thing:
 
@@ -30,7 +30,7 @@ Glad you asked. Here's the thing:
 |---|---|---|---|
 | URL hijack | ❌ Never | ❌ Never | ✅ Every time |
 | Sends page content to a server | ❌ Never | ✅ Yes | ✅ Yes |
-| Works on SPAs (React, Vue, etc.) | ✅ Yes | 🟡 Sometimes | ❌ Breaks |
+| Works on SPAs (React, Vue, etc.) | ✅ Yes | Sometimes | ❌ Breaks |
 | Works offline (after first download) | ✅ Yes | ❌ No | ❌ No |
 | Free | ✅ Yes | ✅ Yes | ✅ Yes |
 | Open source | ✅ Yes | ❌ No | ❌ No |
@@ -43,7 +43,7 @@ The killer feature: **click → translated. Click again → original. No page re
 
 ---
 
-## 📦 Install in 30 seconds
+## Install in 30 seconds
 
 > **Requirement:** Chrome 138+ (Canary / Dev / Beta) — or Chrome Stable with two flags flipped.
 
@@ -62,7 +62,7 @@ Just works out of the box. The APIs are enabled by default.
 
 ---
 
-## 🛠️ How it works (for the curious)
+## How it works (for the curious)
 
 ```
 ┌─────────────┐  message   ┌──────────────┐   API call   ┌─────────────────┐
@@ -89,7 +89,7 @@ Want to hack on it? The whole codebase is **< 300 lines of actual logic**. No bu
 
 ---
 
-## 🌍 Supported languages
+## Supported languages
 
 | Code | Language | Code | Language |
 |---|---|---|---|
@@ -105,7 +105,7 @@ Want to hack on it? The whole codebase is **< 300 lines of actual logic**. No bu
 
 ---
 
-## 🤔 Why is this free? What's the catch?
+## Why is this free? What's the catch?
 
 **There is no catch.**
 
@@ -117,7 +117,7 @@ No backend. No API key you have to provision. No model you have to host. No rate
 
 ---
 
-## 🚧 What this is NOT
+## What this is NOT
 
 We're honest about limitations:
 
@@ -131,7 +131,7 @@ These are **API and design constraints**, not laziness. PRs welcome for any of t
 
 ---
 
-## 🧪 Development
+## Development
 
 ```bash
 # Clone
@@ -170,13 +170,13 @@ Both should exit 0. If they don't, you broke something.
 
 ---
 
-## 📜 License
+## License
 
 MIT. Use it, fork it, ship it as a paid product if you want (though we can't imagine why).
 
 ---
 
-## ⭐ Why you should star this repo
+## Why you should star this repo
 
 Honestly?
 
@@ -185,8 +185,8 @@ Honestly?
 - **It's a reference implementation** of how to use Chrome's new on-device AI APIs. Fork it, learn from it, build the next thing.
 - **It gets better with Chrome itself.** As Chrome adds languages and improves its on-device models, this extension gets better for free.
 
-⭐ **If this saved you from copy-pasting one more paragraph into Google Translate, hit the star. That's it. That's the ask.**
+If this saved you from copy-pasting one more paragraph into Google Translate, hit the star. That's it. That's the ask.
 
 ---
 
-<sub>Built with 🫶 on top of Chrome's built-in AI APIs. No external services. No tracking. No nonsense.</sub>
+<sub>Built on top of Chrome's built-in AI APIs. No external services. No tracking. No nonsense.</sub>
