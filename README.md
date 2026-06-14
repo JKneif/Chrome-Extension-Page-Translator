@@ -62,5 +62,6 @@ The popup only does UI + messaging. The content script does DOM work. The Transl
 
 - No live re-translation of dynamically inserted content (no MutationObserver — by design, YAGNI).
 - `<iframe>` content is not translated.
+- Source language is detected from the DOM text sample. Pages with mostly-English chrome (nav, header) and non-Latin body content (CJK, Cyrillic, etc.) are handled, but the page must already have its main content rendered when you click Translate. Pure single-page-apps that load content lazily may need a manual re-click after the content appears.
 - No per-site settings, no glossary, no model selection.
 - Translator API is still experimental; API shape may change.

@@ -30,25 +30,104 @@
     return !isVisible(el);
   }
 
+  // Soft cap for the detection sample. Larger than the translate-pipeline
+  // cap because SPAs often have English chrome ("Agent Router", nav, etc.)
+  // at the top and the actual page content (often non-Latin) further down.
+  const DETECT_SAMPLE_MAX = 4000;
+
   /**
-   * Build a small text sample from <title> + first visible text nodes,
-   * capped at ~500 chars, used as input to LanguageDetector.detect().
+   * Check whether a string contains characters from non-Latin scripts
+   * (CJK, Cyrillic, Arabic, Hebrew, etc.). Used to decide whether the
+   * page's primary script is non-Latin even when most visible text is.
+   *
+   * @param {string} s
+   * @returns {boolean}
+   */
+  function hasNonLatinScript(s) {
+    // Unicode ranges covering CJK, Cyrillic, Greek, Arabic, Hebrew, Devanagari, Thai, etc.
+    // Latin and Common punctuation/digits are excluded.
+    return /[Ѐ-ӿͰ-Ͽ֐-׿؀-ۿऀ-ॿ฀-๿぀-ヿ㐀-䶿一-鿿가-힯]/.test(s);
+  }
+
+  /**
+   * @returns {string|null} BCP-47 short code from <html lang="..."> if present and
+   *   looks like a real language tag (not "" or "en" by default). Returns the
+   *   primary subtag only (e.g. "zh" from "zh-Hans-CN").
+   */
+  function getHtmlLang() {
+    const raw = document.documentElement && document.documentElement.lang;
+    if (!raw) return null;
+    const primary = raw.trim().toLowerCase().split(/[-_]/)[0];
+    // Reject obviously bogus values.
+    if (!primary || primary === "en" || primary.length < 2 || primary.length > 8) return null;
+    return primary;
+  }
+
+  /**
+   * Build a larger, DOM-wide text sample for language detection. We sample
+   * up to DETECT_SAMPLE_MAX chars from <title> + visible text nodes anywhere
+   * in the document, not just the first few — so a page with English chrome
+   * at the top and Chinese content lower down still gets detected correctly.
+   *
    * @returns {string}
    */
   function buildDetectionSample() {
     const parts = [];
     const title = (document.title || "").trim();
     if (title) parts.push(title);
+
     const nodes = collectTextNodes(document.body);
     for (const n of nodes) {
-      const t = n.nodeValue.trim();
-      if (!t) continue;
-      parts.push(t);
+      // Use the raw nodeValue but still skip purely-whitespace nodes — they
+      // add nothing for detection and bloat the sample.
+      const raw = n.nodeValue;
+      if (!raw || !raw.trim()) continue;
+      parts.push(raw);
       const combined = parts.join(" ");
-      if (combined.length > 500) break;
+      if (combined.length > DETECT_SAMPLE_MAX) break;
     }
-    return parts.join(" ").slice(0, 800);
+    return parts.join(" ").slice(0, DETECT_SAMPLE_MAX);
   }
+
+  /**
+   * Decide the page's source language. Runs the Chrome LanguageDetector on
+   * the DOM-wide sample; if the detector is confident in Latin script only
+   * (or detection fails / returns en) but <html lang="..."> names a different
+   * language, trust the html attribute as a hint.
+   *
+   * @returns {Promise<string|null>} BCP-47 short code, or null if unknown.
+   */
+  async function resolveSourceLanguage() {
+    const api = globalThis.__pt;
+    if (!api || !api.isLanguageDetectorAvailable()) return null;
+
+    const sample = buildDetectionSample();
+    let detected = null;
+    try {
+      detected = await api.detectSourceLanguage(sample);
+    } catch (e) {
+      console.warn("[page-translator] language detection threw:", e);
+    }
+
+    // If the sample clearly contains non-Latin script, trust detection
+    // (or null) — do NOT let html lang override real CJK content.
+    const sampleHasNonLatin = hasNonLatinScript(sample);
+    if (sampleHasNonLatin) {
+      return detected;
+    }
+
+    // Sample looks Latin-only. If detection picked something non-English,
+    // trust it. Otherwise, consider <html lang="..."> as a hint.
+    if (detected && detected !== "en") {
+      return detected;
+    }
+    const htmlLang = getHtmlLang();
+    if (htmlLang && htmlLang !== "en") {
+      return htmlLang;
+    }
+    return detected || htmlLang || null;
+  }
+
 
   /**
    * Collect visible text nodes under `root`.
@@ -93,12 +172,10 @@
     }
 
     // The Translator API does not accept "auto" — we must detect the
-    // source language first using the Language Detector API.
-    let sourceLang = null;
-    if (api.isLanguageDetectorAvailable()) {
-      const sample = buildDetectionSample();
-      sourceLang = await api.detectSourceLanguage(sample);
-    }
+    // source language first using the Language Detector API. We use a
+    // DOM-wide sample (not just the first few nodes) and fall back to
+    // <html lang="..."> when the visible text is mostly Latin.
+    const sourceLang = await resolveSourceLanguage();
     if (!sourceLang) {
       return {
         ok: false,

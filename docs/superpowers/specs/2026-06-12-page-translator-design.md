@@ -12,7 +12,7 @@ A user-triggered Chrome extension that, on a single click in the popup, translat
 
 - **Distribution:** Unpacked extension loaded via `chrome://extensions/` in developer mode. No Chrome Web Store publishing.
 - **Engine:** Chrome Built-in Translator API (`globalThis.Translator`) + Language Detector API (`globalThis.LanguageDetector`). Available in Chrome 138+ (Canary/Dev/Beta by default; Stable requires `chrome://flags/#translation-api` and `chrome://flags/#language-detection-api`).
-- **Source language:** Detected at translate-time via `LanguageDetector.detect()` over `<title>` + first visible text nodes (~800 chars). Result is an explicit BCP-47 short code passed to `Translator.create()`. **"auto" is not accepted** by the Translator API and must be resolved first.
+- **Source language:** Detected at translate-time via `LanguageDetector.detect()` over a DOM-wide sample of up to 4000 chars (title + visible text nodes anywhere in the body, not just the first few). If the resulting sample contains only Latin script and the detector returns `en` (or fails), `<html lang="...">` is consulted as a hint — its primary subtag is used when present and non-`en`. If the sample contains non-Latin script, detection wins; `html lang` is never used to override real CJK/other content. **"auto" is not accepted** by the Translator API and must be resolved first.
 - **Target language:** User-selectable in popup, default `en`. Persisted in `chrome.storage.session`.
 - **Scope:** Single page, no MutationObserver (best-effort, no live updates).
 - **Permissions:** `activeTab`, `scripting`, `storage`, `host_permissions: ["<all_urls>"]`.
@@ -42,7 +42,7 @@ manifest.json MV3 config
 1. User opens popup, picks target language, clicks **Translate**.
 2. `popup.js` → `chrome.tabs.sendMessage(tabId, {type: "TRANSLATE", targetLang})`.
 3. `content.js` calls `collectTextNodes(document.body)` → `Array<{node, text}>`.
-4. `content.js` builds a detection sample (`<title>` + first ~800 chars) and calls `api.detectSourceLanguage(sample)` → `sourceLang`.
+4. `content.js` calls `resolveSourceLanguage()`: builds a DOM-wide sample (up to 4000 chars), runs `LanguageDetector.detect()`, and falls back to `<html lang>` only when the sample is Latin-only. Returns a concrete BCP-47 code.
 5. If `sourceLang === targetLang`, respond with "Page is already in <target>".
 6. Text nodes grouped into batches of 50.
 7. For each batch: `ensureTranslator({source: sourceLang, target})` (cached by key).
