@@ -1,0 +1,88 @@
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #111827;
+  --muted: #6b7280;
+  --primary: #2563eb;
+  --primary-fg: #ffffff;
+  --secondary-bg: #e5e7eb;
+  --secondary-fg: #111827;
+  --ok: #047857;
+  --err: #b91c1c;
+  --banner-bg: #fee2e2;
+  --banner-fg: #7f1d1d;
+  --border: #d1d5db;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --fg: #e5e7eb;
+    --muted: #94a3b8;
+    --primary: #3b82f6;
+    --secondary-bg: #1f2937;
+    --secondary-fg: #e5e7eb;
+    --border: #334155;
+    --banner-bg: #3f1d1d;
+    --banner-fg: #fecaca;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 280px;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  font-size: 13px;
+}
+
+header { padding: 12px 14px 0; }
+
+h1 {
+  font-size: 14px;
+  margin: 0;
+  font-weight: 600;
+}
+
+main { padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+label { color: var(--muted); font-size: 12px; }
+
+select, button {
+  font: inherit;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  padding: 7px 10px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+button { cursor: pointer; font-weight: 500; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+button.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+button.primary:hover:not(:disabled) { filter: brightness(1.1); }
+
+button.secondary { background: var(--secondary-bg); color: var(--secondary-fg); }
+button.secondary:hover:not(:disabled) { filter: brightness(0.95); }
+
+.status { margin: 4px 0 0; min-height: 1.2em; }
+.status.idle    { color: var(--muted); }
+.status.success { color: var(--ok); }
+.status.error   { color: var(--err); }
+
+.banner {
+  background: var(--banner-bg);
+  color: var(--banner-fg);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.banner a { color: inherit; }
